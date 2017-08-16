@@ -8,7 +8,7 @@ lazy val root = (project in file(".")).
       version      := "0.1.0-SNAPSHOT",
       cancelable in Global := true
     )),
-    name := "Email Server Throughput Test Application",
+    name := "email-throughput",
     libraryDependencies ++= Seq(
         scalaTest % Test,
         javaMail,
@@ -16,3 +16,7 @@ lazy val root = (project in file(".")).
         scallop
     )
   )
+
+import AssemblyKeys._
+
+assemblySettings
