@@ -17,6 +17,3 @@ lazy val root = (project in file(".")).
     )
   )
 
-import AssemblyKeys._
-
-assemblySettings
