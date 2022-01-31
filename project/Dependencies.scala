@@ -1,9 +1,11 @@
 import sbt._
 
 object Dependencies {
-  val sttpVersion = "3.3.18"
+  val akkaVersion = "2.5.26"
   val json4sVersion = "4.0.3"
-  lazy val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.3"
+  val sttpVersion = "3.3.18"
+  lazy val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
+  lazy val akkaStreams = "com.typesafe.akka" %% "akka-stream" % akkaVersion
   lazy val javaMail = "javax.mail" % "mail" % "1.4"
   lazy val json4s = "org.json4s" %% "json4s-native" % json4sVersion
   lazy val json4sAST = "org.json4s" %% "json4s-ast" % json4sVersion

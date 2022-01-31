@@ -1,7 +1,7 @@
 import Dependencies._
 
-lazy val root = (project in file(".")).
-  settings(
+lazy val root = (project in file("."))
+  .settings(
     inThisBuild(List(
       organization := "org.bebingando",
       scalaVersion := "2.12.1",
@@ -11,7 +11,8 @@ lazy val root = (project in file(".")).
     )),
     name := "email-throughput",
     libraryDependencies ++= Seq(
-        akka,
+        akkaActor,
+        akkaStreams,
         javaMail,
         json4s,
         json4sAST,
@@ -24,12 +25,11 @@ lazy val root = (project in file(".")).
         sttpJson4s
     ),
     assemblyJarName := "email-throughput.jar",
-     /* Building a fat JAR application, so it should be fine to use MergeStrategy.discard
-      * since we are providing all dependencies in our JAR
-      */
     assemblyMergeStrategy in assembly := {
-        case _ => MergeStrategy.discard
-    },
-    mainClass in assembly := Some("org.bebingando.EmailThroughput")
+        case PathList(x, xs @ _*) if List(
+                "io.netty.versions.properties",
+                "META-INF"
+            ).contains(x) => MergeStrategy.discard
+        case _ => MergeStrategy.first
+    }
   )
-

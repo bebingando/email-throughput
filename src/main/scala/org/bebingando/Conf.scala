@@ -11,6 +11,7 @@ trait BaseConf { this: ScallopConf =>
     lazy val subject = opt[String]("subject", default=Some("Test Email"), descr="Subject line to use in test emails")
     lazy val body = opt[String]("body", default=Some("Hello World!"), descr="Message body to use in test emails")
     lazy val emailCount = opt[Int]("email-count", short='c', required=true, descr="Number of emails to generate and handoff to the email server. Make it a multiple of 8, ok?")
+    lazy val threadCount = opt[Int]("thread-count", noshort=true, default=Some(1), descr="Thread count level of concurrency")
     lazy val extraHeaders = trailArg[List[String]]("headers", default=Some(List.empty), required=false, descr="Header(s) to apply to each test email. Separate key from value with a pipe '|'. Ex) X-Account-ID|12345")
     validate (extraHeaders) { headers =>
         Try(headers.map { pair =>
@@ -49,7 +50,10 @@ sealed abstract class EmailMeta(
     subject: String,
     body: String,
     headers: List[(String, String)]
-)
+) {
+    def toLocalBase: String
+    def toDomain: String
+}
 
 final case class SMTPMeta(
     host: String,

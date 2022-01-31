@@ -1,12 +1,15 @@
 package org.bebingando.emailthroughput
 
 import java.util.concurrent.Executors
-import javax.mail.{MessagingException,SendFailedException}
-import javax.mail.internet.{AddressException}
+import javax.mail.{MessagingException, SendFailedException}
+import javax.mail.internet.AddressException
 import akka.actor.{Actor, ActorSystem, AllForOneStrategy, Props}
 import akka.actor.SupervisorStrategy.Stop
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
+import org.bebingando
+import scala.collection.JavaConverters.mapAsJavaMapConverter
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
@@ -17,11 +20,20 @@ object EmailThroughput extends App {
     val sc = conf.subcommand.getOrElse { throw new IllegalArgumentException("Invalid subcommand") }.asInstanceOf[BaseConf]
     println("Email Service (Mailgun, etc) Throughput Test Application")
 
-    val senderCount = 8
+    val senderCount = sc.threadCount() //8
     val emailsPerSender = sc.emailCount() / senderCount
     println(s"Will send $emailsPerSender emails from each of the $senderCount senders")
 
-    val system = ActorSystem("email-throughput")
+    val akkaConfig = ConfigFactory.parseMap(
+        Map("dispatcher" -> Map(
+                "type" -> "Dispatcher",
+                "executor" -> "thread-pool-executor",
+                "thread-pool-executor" -> Map("fixed-pool-size" -> 10).asJava,
+                "throughput" -> 1
+            ).asJava
+        ).asJava)
+
+    implicit val system = ActorSystem("email-throughput", config = akkaConfig)
     val parent = system.actorOf(Props[Parent], "email-supervisor")
 
     def makeHeaders(in: List[String]): List[(String, String)] = in.map { pair => {
@@ -30,27 +42,38 @@ object EmailThroughput extends App {
     }}
 
     // FIXME: could probably clean this up by unifying the meta and conf classes (case class and companion object, respectively)
-    val meta = sc match {
-        case SMTPConf => {
-            import SMTPConf._
-            SMTPMeta(host(), port(), username(), password(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders()))
-        }
-        case RestAPIConf => {
-            import RestAPIConf._
-            RestAPIMeta(host(), apiKey(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders()))
-        }
-    }
+//    val meta = sc match {
+//        case SMTPConf => {
+//            import SMTPConf._
+//            SMTPMeta(host(), port(), username(), password(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders()))
+//        }
+//        case RestAPIConf => {
+//            import RestAPIConf._
+//            RestAPIMeta(host(), apiKey(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders()))
+//        }
+//    }
 
     val executor = Executors.newCachedThreadPool()
     implicit val ec = ExecutionContext.fromExecutor(executor)
 
     implicit val to = Timeout(Duration(30, "minutes"))
 
-    val f = Future(parent ? SpawnChildren(senderCount, emailsPerSender, meta))
-    val r = Await.result(f, Duration(90, "minutes"))
-
+//    val f = Future(parent ? SpawnChildren(senderCount, emailsPerSender, meta))
+//    val r = Await.result(f, Duration(90, "minutes"))
+    val stream = sc match {
+        case SMTPConf =>
+            import SMTPConf._
+            new SmtpStream(sc.emailCount(), senderCount, SMTPMeta(host(), port(), username(), password(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders())))
+        case RestAPIConf =>
+            import RestAPIConf._
+            new RestApiStream(sc.emailCount(), senderCount, RestAPIMeta(host(), apiKey(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders())))
+    }
+    stream.execute
     system.terminate().onComplete(_ => System.exit(0))
 }
+
+// SBDEV: can probably get rid of all this actor craziness! once the Stream sending logic
+// for REST and SMTP is complete
 
 case class SpawnChildren(count: Int, emailsPerSender: Int, emailMeta: EmailMeta)
 case class SimpleMessage(message: String)
