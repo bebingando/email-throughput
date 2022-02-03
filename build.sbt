@@ -30,6 +30,7 @@ lazy val root = (project in file("."))
                 "io.netty.versions.properties",
                 "META-INF"
             ).contains(x) => MergeStrategy.discard
+        case "reference.conf" => MergeStrategy.concat
         case _ => MergeStrategy.first
     }
   )
