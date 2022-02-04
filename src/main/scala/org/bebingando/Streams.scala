@@ -5,7 +5,7 @@ import akka.stream.{ActorMaterializer, FlowShape}
 import akka.stream.scaladsl.{Balance, Flow, GraphDSL, Merge, Sink, Source}
 import akka.NotUsed
 import akka.actor.ActorSystem
-import javax.mail.internet.{InternetAddress, MimeMessage}
+import javax.mail.internet.{InternetAddress, MimeBodyPart, MimeMessage, MimeMultipart}
 import javax.mail.{Address, Authenticator, Message, PasswordAuthentication, Session, Transport}
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, SECONDS}
@@ -139,14 +139,25 @@ class SmtpStream(
         override protected def initialValue(): Transport = session.getTransport("smtp")
     }
 
+    val textBody = new MimeBodyPart
+    textBody.setText(BodyBuilder.buildText(20), "utf-8")
+    textBody.setHeader("Content-Transfer-Encoding", "quoted-printable")
+
+    val htmlBody = new MimeBodyPart
+    htmlBody.setContent(BodyBuilder.buildHtml(20), "text/html; charset=utf-8")
+    htmlBody.setHeader("Content-Transfer-Encoding", "quoted-printable")
+
+    val mp = new MimeMultipart("alternative")
+    mp.addBodyPart(textBody)
+    mp.addBodyPart(htmlBody)
+
     override def makeSendWork = (1 to count).toList.map { i =>
         val toInetAddress = new InternetAddress(makeRecipientAddressString(i), true)
         val recipients = Array(toInetAddress).map(_.asInstanceOf[Address])
         val message = new MimeMessage(session)
         message.setFrom(fromInetAddress)
         message.setSubject(meta.subject)
-        message.setText(meta.body)
-        // SBDEV: set the HTML and the text w/ bigger values!
+        message.setContent(mp)
         message.setRecipients(Message.RecipientType.TO, recipients)
         message.setHeader("X-Mailgun-Drop-Message", "yes")
         meta.headers.foreach(kv => message.setHeader(kv._1, kv._2))
@@ -175,5 +186,54 @@ class SmtpStream(
                 case Failure(e) => println(s"Exception while closing SMTP connection: ${e.getMessage()}")
             }
         }
+    }
+}
+
+object BodyBuilder {
+    private val loremIpsum =
+        """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          |Magna ac placerat vestibulum lectus mauris ultrices eros in cursus.
+          |Tincidunt eget nullam non nisi est sit amet.
+          |Pulvinar pellentesque habitant morbi tristique senectus et netus et malesuada.
+          |Massa placerat duis ultricies lacus.
+          |Et magnis dis parturient montes nascetur ridiculus mus mauris vitae.
+          |Tempus quam pellentesque nec nam aliquam sem et tortor.
+          |Metus vulputate eu scelerisque felis imperdiet.
+          |Aliquet bibendum enim facilisis gravida.
+          |Tristique et egestas quis ipsum suspendisse ultrices gravida dictum fusce.
+          |Feugiat nisl pretium fusce id velit ut tortor pretium viverra.
+          |In arcu cursus euismod quis viverra nibh cras pulvinar mattis.
+          |Duis ultricies lacus sed turpis tincidunt id aliquet.
+          |Dui id ornare arcu odio ut sem nulla pharetra.
+          |Nisi quis eleifend quam adipiscing vitae.""".stripMargin
+    def buildText(lineCount: Int): String = (1 to lineCount).toList.map(_ => loremIpsum).mkString("\n")
+    def buildHtml(rowCount: Int): String = {
+        val rows = (1 to rowCount).toList.map { _ =>
+             s"""|<tr>
+                 | <td style="padding:15px;" class="em_padd" valign="top" bgcolor="#efefef" align="center"><table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+                 |  <tbody>
+                 |   <tr>
+                 |    <td style="font-family:'Open Sans', Arial, sans-serif; font-size:12px; line-height:15px; color:#0d1121;" valign="top" align="center">
+                 |    ${loremIpsum}
+                 |    </td>
+                 |   </tr>
+                 |  </tbody>
+                 | </td>
+                 |</tr>""".stripMargin
+        }
+        s"""|<html xmlns="https://www.w3.org/1999/xhtml">
+            |<head>
+            |<title>Test Email Sample</title>
+            |<meta http–equiv="Content-Type" content="text/html; charset=UTF-8" />
+            |<meta http–equiv="X-UA-Compatible" content="IE=edge" />
+            |<meta name="viewport" content="width=device-width, initial-scale=1.0 " />
+            |<style></style>
+            |</head>
+            |<body class="em_body" style="margin:0px; padding:0px;" bgcolor="#efefef">
+            | <table align="center" width="700" border="0" cellspacing="0" cellpadding="0" class="em_main_table" style="width:700px;">
+            |  ${rows.mkString("\n")}
+            | </table>
+            |</body>
+            |</html>""".stripMargin
     }
 }
