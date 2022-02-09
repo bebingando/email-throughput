@@ -1,15 +1,15 @@
-package org.bebingando.emailthroughput
+package com.paytronix.emailthroughput
 
 import java.util.Properties
 import akka.stream.{ActorMaterializer, FlowShape}
 import akka.stream.scaladsl.{Balance, Flow, GraphDSL, Merge, Sink, Source}
 import akka.NotUsed
 import akka.actor.ActorSystem
+import javax.activation.{CommandMap, MailcapCommandMap}
 import javax.mail.internet.{InternetAddress, MimeBodyPart, MimeMessage, MimeMultipart}
 import javax.mail.{Address, Authenticator, Message, PasswordAuthentication, Session, Transport}
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, SECONDS}
-import org.bebingando.emailthroughput.conf.{EmailMeta, RestAPIMeta, SMTPMeta}
 import org.json4s.native.Serialization
 import org.json4s.DefaultFormats
 import sttp.client3.asynchttpclient.future.AsyncHttpClientFutureBackend
@@ -138,6 +138,13 @@ class SmtpStream(
     val transportLocal: ThreadLocal[Transport] = new ThreadLocal[Transport] {
         override protected def initialValue(): Transport = session.getTransport("smtp")
     }
+
+    val mc: MailcapCommandMap = CommandMap.getDefaultCommandMap.asInstanceOf[MailcapCommandMap]
+    mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html")
+    mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml")
+    mc.addMailcap("text/plain;; x-java-content-handler=com.sun.mail.handlers.text_plain")
+    mc.addMailcap("multipart/*;; x-java-content-handler=com.sun.mail.handlers.multipart_mixed")
+    mc.addMailcap("message/rfc822;; x-java-content- handler=com.sun.mail.handlers.message_rfc822")
 
     val textBody = new MimeBodyPart
     textBody.setText(BodyBuilder.buildText(20), "utf-8")

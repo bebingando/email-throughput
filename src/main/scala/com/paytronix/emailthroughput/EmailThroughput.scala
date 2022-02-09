@@ -1,4 +1,4 @@
-package org.bebingando.emailthroughput
+package com.paytronix.emailthroughput
 
 import java.util.concurrent.Executors
 import akka.actor.ActorSystem
@@ -7,11 +7,12 @@ import com.typesafe.config.ConfigFactory
 import scala.collection.JavaConverters.mapAsJavaMapConverter
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
-import org.bebingando.emailthroughput.conf.{BaseConf, Conf, RestAPIConf, RestAPIMeta, SMTPConf, SMTPMeta}
 
 object EmailThroughput extends App {
     val conf = new Conf(args)
-    val sc = conf.subcommand.getOrElse { throw new IllegalArgumentException("Invalid subcommand") }.asInstanceOf[BaseConf]
+    val sc = conf.subcommand.getOrElse {
+        throw new IllegalArgumentException("Invalid subcommand")
+    }.asInstanceOf[BaseConf]
     println("Email Service (Mailgun, etc) Throughput Test Application")
 
     val senderCount = sc.threadCount() //8
@@ -20,12 +21,11 @@ object EmailThroughput extends App {
 
     val akkaConfig = ConfigFactory.parseMap(
         Map("dispatcher" -> Map(
-                "type" -> "Dispatcher",
-                "executor" -> "thread-pool-executor",
-                "thread-pool-executor" -> Map("fixed-pool-size" -> 10).asJava,
-                "throughput" -> 1
-            ).asJava
-        ).asJava)
+            "type" -> "Dispatcher",
+            "executor" -> "thread-pool-executor",
+            "thread-pool-executor" -> Map("fixed-pool-size" -> 10).asJava,
+            "throughput" -> 1
+        ).asJava).asJava)
 
     implicit val system = ActorSystem("email-throughput", config = akkaConfig)
 

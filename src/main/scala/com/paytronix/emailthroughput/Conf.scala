@@ -1,4 +1,4 @@
-package org.bebingando.emailthroughput.conf
+package com.paytronix.emailthroughput
 
 import org.rogach.scallop.{stringConverter, stringListConverter, ScallopConf, Subcommand}
 import scala.util.{Failure, Success, Try}

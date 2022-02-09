@@ -3,7 +3,7 @@ import Dependencies._
 lazy val root = (project in file("."))
   .settings(
     inThisBuild(List(
-      organization := "org.bebingando",
+      organization := "com.paytronix",
       scalaVersion := "2.12.1",
       version      := "0.1.0-SNAPSHOT",
       cancelable in Global := true,
@@ -13,6 +13,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
         akkaActor,
         akkaStreams,
+        javaActivation,
         javaMail,
         json4s,
         json4sAST,
