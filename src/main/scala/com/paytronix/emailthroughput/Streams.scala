@@ -78,6 +78,9 @@ class RestApiStream(
     implicit val serialization = Serialization
     implicit val formats = DefaultFormats
 
+    private val memoizedTextBody = BodyBuilder.buildText(meta.bodyMultiple)
+    private val memoizedHtmlBody = BodyBuilder.buildHtml(meta.bodyMultiple)
+
     val httpBackend = AsyncHttpClientFutureBackend()
     val uri: Uri = uri"https://api.mailgun.net/v3/campaignmail.dev.pxslab.com/messages"
     val requestTemplate = basicRequest.post(uri).contentType("multipart/form-data").response(asJson[Response])
@@ -92,8 +95,8 @@ class RestApiStream(
                 .multipartBody(
                     multipart("to", w.to),
                     multipart("subject", meta.subject),
-                    multipart("text", meta.body),
-                    // SBDEV: set the HTML and the text w/ bigger values!
+                    multipart("text", memoizedTextBody),
+                    multipart("html", memoizedHtmlBody),
                     multipart("from", meta.fromAddress),
                     multipart("o:testmode", "yes")
                 )

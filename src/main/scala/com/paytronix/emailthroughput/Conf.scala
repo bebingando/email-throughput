@@ -28,6 +28,7 @@ trait BaseConf { this: ScallopConf =>
 
 object RestAPIConf extends Subcommand("api") with BaseConf {
     lazy val apiKey = opt[String](name = "api-key", short='k', required=true, descr="API key for authenticating REST API call")
+    lazy val bodyMultiple = opt[Int]("body-multiple", default=Some(1), descr="Repetitions of body content in a given message (useful to increase message size linearly)")
 }
 
 object SMTPConf extends Subcommand("smtp") with BaseConf {
@@ -76,5 +77,6 @@ final case class RestAPIMeta(
     fromAddress: String,
     subject: String,
     body: String,
-    headers: List[(String, String)]
+    headers: List[(String, String)],
+    bodyMultiple: Int
 ) extends EmailMeta(host, toLocalBase, toDomain, fromAddress, subject, body, headers)

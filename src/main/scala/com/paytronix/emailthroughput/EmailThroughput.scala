@@ -45,7 +45,7 @@ object EmailThroughput extends App {
             new SmtpStream(sc.emailCount(), senderCount, SMTPMeta(host(), port(), username(), password(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders())))
         case RestAPIConf =>
             import RestAPIConf._
-            new RestApiStream(sc.emailCount(), senderCount, RestAPIMeta(host(), apiKey(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders())))
+            new RestApiStream(sc.emailCount(), senderCount, RestAPIMeta(host(), apiKey(), toLocalBase(), toDomain(), fromAddress(), subject(), body(), makeHeaders(extraHeaders()), bodyMultiple()))
     }
     stream.execute
     system.terminate().onComplete(_ => System.exit(0))
