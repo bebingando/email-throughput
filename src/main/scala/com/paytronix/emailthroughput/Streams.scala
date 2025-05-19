@@ -82,7 +82,7 @@ class RestApiStream(
     private val memoizedHtmlBody = BodyBuilder.buildHtml(meta.bodyMultiple)
 
     val httpBackend = AsyncHttpClientFutureBackend()
-    val uri: Uri = uri"https://api.mailgun.net/v3/campaignmail.dev.pxslab.com/messages"
+    val uri: Uri = uri"https://api.mailgun.net/v3/campaignmail.dev.pxslab.com/messages" // FIXME: accept this in the config, don't hardcode the domain
     val requestTemplate = basicRequest.post(uri).contentType("multipart/form-data").response(asJson[Response])
 
     override def makeSendWork: List[RestApiWork] = (1 to count).toList.map { i => RestApiWork(makeRecipientAddressString(i))}
